@@ -38,6 +38,10 @@ resource "yandex_compute_instance" "vm" {
         nat       = true
     }
 
+    scheduling_policy {
+        preemptible = true
+    }
+    
     metadata = {
         user-data = file(var.new_user)
     }
