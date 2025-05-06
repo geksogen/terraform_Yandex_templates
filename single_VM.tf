@@ -1,43 +1,34 @@
-/*
-curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
-restart VM
-https://oauth.yandex.ru/authorize?response_type=token&client_id=1a6990aa636648e9b2ef855fa7bec2fb
-yc init
-yc config list
-*/
-
 terraform {
   required_providers {
     yandex = {
       source = "terraform-registry.storage.yandexcloud.net/yandex-cloud/yandex"
     }
   }
-  required_version = ">= 0.92.0"
+  required_version = ">= 0.13"
 }
 
 provider "yandex" {
  token     = "<>"
  cloud_id  = "<>"
- folder_id = "<>"
+ folder_id = "ll"
  zone      = "ru-central1-a"
 }
 
-resource "yandex_compute_instance" "vm-1" {
-    name ="test"
-    resources {
-        cores  = 2
-        memory = 2
-    }
+locals {
+  vm_names = ["std-00-test-vm-1"]
+}
 
-    boot_disk {
-        initialize_params {
-            image_id = "fd80jfslq61mssea4ejn"
-        }
-    }
+resource "yandex_compute_instance" "vm" {
+    count = length(local.vm_names)
+    name = local.vm_names[count.index]
 
     network_interface {
         subnet_id = "<>"
         nat       = true
+    }
+
+    scheduling_policy {
+        preemptible = true
     }
 
     metadata = {
@@ -45,6 +36,9 @@ resource "yandex_compute_instance" "vm-1" {
     }
   }
 
-output "ip_address" {
-    value = [yandex_compute_instance.vm-1.network_interface.0.nat_ip_address, yandex_compute_instance.vm-1.network_interface.0.ip_address, yandex_compute_instance.vm-1.name]
+output "instance_output" {
+  value = [
+    for instance in yandex_compute_instance.vm[*] :
+    join(": ", [instance.name, instance.hostname, instance.network_interface.0.ip_address, instance.network_interface.0.nat_ip_address])
+  ]
 }
